@@ -393,6 +393,9 @@ document.getElementById('reportDialog').addEventListener('click', (e) => {
     }
 });
 
+
+// Impede que o zoom do iPhone bagunce o layout quando você clica no input
+document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
 function copiarDoHistorico() {
     navigator.clipboard.writeText(window.currentReportContent);
     alert("Copiado com sucesso!");
