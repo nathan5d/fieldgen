@@ -6,11 +6,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-     <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="FieldGen">
+
+
+    <link rel="stylesheet" href="lib/codemirror/codemirror.css">
+    <link rel="stylesheet" href="lib/codemirror/theme/dracula.css">
+    
+
+    <script src="lib/codemirror/codemirror.js"></script>
+
+    <script src="lib/codemirror/mode/javascript/javascript.js"></script>
 
     <link rel="manifest" href="manifest.json">
 
@@ -338,7 +347,6 @@
 
         dialog {
             border: none;
-            padding: 24px;
             width: 100%;
             border-radius: 24px 24px 0 0;
             margin: 0 auto;
@@ -373,6 +381,22 @@
             margin: 15px auto;
             border-radius: 5px;
         }
+
+        /* Ajusta o editor para o tema padrão */
+.CodeMirror {
+    height: 300px;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+    font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+    font-size: 14px;
+    background: #f9f9fb;
+}
+
+/* Garante que o scroll do editor funcione no mobile */
+.CodeMirror-scroll {
+    overflow-y: auto;
+    overflow-x: auto;
+}
     </style>
 
 </head>
@@ -456,21 +480,26 @@
             <textarea id="jsonEditor"
                 style="width: 100%; height: 250px; font-family: monospace; font-size: 12px; padding: 10px; border-radius: 12px; border: 1px solid #ddd; background: #F9F9FB; box-sizing: border-box;"></textarea>
 
-            <div id="errorLog"
-                style="color: var(--danger); font-size: 12px; margin-top: 5px; min-height: 15px; font-weight: bold;">
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
-                <button class="btn-preview" onclick="toggleEditor()"
-                    style="background: var(--gray); font-size: 14px;">Cancelar</button>
-                <button class="btn-add" onclick="saveSettings()" style="font-size: 14px;">Salvar</button>
-            </div>
+           <div id="errorLog" style="color: var(--danger); font-size: 12px; margin: 5px 0; min-height: 15px; font-weight: bold;"></div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+        <button onclick="formatarJSON()" style="background: #e1f5fe; color: #0288d1; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px;">
+            🧹 Formatar
+        </button>
+        <button onclick="resetConfig()" style="background: #ffebee; color: #d32f2f; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px;">
+            🔄 Resetar
+        </button>
+        
+        <button class="btn-preview" onclick="toggleEditor()" style="grid-column: span 1; background: var(--gray); font-size: 14px;">Cancelar</button>
+        <button class="btn-add" onclick="saveSettings()" style="grid-column: span 1; font-size: 14px;">💾 Salvar</button>
+    </div>
         </div>
 
     </div>
 
     <dialog id="reportDialog">
         <div class="sheet-handle"></div>
-        <div id="sheetContent" style="padding: 20px;"></div>
+        <div id="sheetContent" style="padding: 0;"></div>
     </dialog>
 
     <script>

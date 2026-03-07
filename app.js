@@ -41,7 +41,9 @@ const defaultConfig = {
 };
 
 // 2. Carregamento da Configuração (LocalStorage ou Default)
-let currentConfig = JSON.parse(localStorage.getItem('relatorioConfig')) || defaultConfig;
+// Ajuste na linha 23
+let storedConfig = localStorage.getItem('relatorioConfig');
+let currentConfig = storedConfig ? JSON.parse(storedConfig) : defaultConfig;
 
 // 3. Seleção de Elementos do DOM
 const select = document.getElementById("tipoRelatorio");
@@ -226,39 +228,109 @@ function renderTemplate(template, data) {
     return template.replace(/\{(.*?)\}/g, (_, key) => data[key] || "");
 }
 
-// 8. Configurações e Persistência
-// Função para abrir/fechar o editor
+
+
+// Atribui ao botão da engrenagem
+btnConfig.onclick = toggleEditor;
+
+let editorInstance = null;
+
 function toggleEditor() {
     const isVisible = editorDiv.style.display === "block";
     editorDiv.style.display = isVisible ? "none" : "block";
 
     if (!isVisible) {
-        jsonEditor.value = JSON.stringify(currentConfig, null, 4);
-        // Rola a tela para o editor aparecer totalmente
+        if (!editorInstance) {
+            // Inicializa o CodeMirror no seu textarea
+            editorInstance = CodeMirror.fromTextArea(document.getElementById("jsonEditor"), {
+                mode: "text/javascript", // Permite destacar comentários visualmente
+                lineNumbers: true,
+                indentUnit: 4,
+                lineWrapping: true,
+                //theme: "default",
+                theme: "dracula",
+            });
+        }
+        // Garante que o texto esteja formatado e dentro do editor
+        editorInstance.setValue(JSON.stringify(currentConfig, null, 4));
+        editorInstance.refresh(); // Garante o render correto após display:block
+
+        if (!editorInstance.hasChangeHandler) {
+            editorInstance.on("change", (cm) => {
+                const errorLog = document.getElementById("errorLog");
+                try {
+                    const content = stripComments(cm.getValue());
+                    JSON.parse(content);
+                    errorLog.innerText = "JSON válido!";
+                    errorLog.style.color = "green";
+                } catch (e) {
+                    errorLog.innerText = "JSON inválido: verifique a sintaxe.";
+                    errorLog.style.color = "red";
+                }
+            });
+            editorInstance.hasChangeHandler = true; // Flag para não registrar de novo
+        }
+
+
         setTimeout(() => editorDiv.scrollIntoView({ behavior: 'smooth' }), 100);
     }
 }
 
-// Atribui ao botão da engrenagem
-btnConfig.onclick = toggleEditor;
-
 function saveSettings() {
-    try {
-        const newConfig = JSON.parse(jsonEditor.value);
+    const errorLog = document.getElementById("errorLog");
+    errorLog.innerText = ""; // Limpa erros anteriores
 
-        // Chama a validação antes de salvar
+    try {
+        const content = editorInstance.getValue();
+        // Remove comentários para permitir o JSON.parse
+        const cleanContent = stripComments(content);
+        const newConfig = JSON.parse(cleanContent);
+
+        // Validação da lógica do sistema
         validateTemplates(newConfig);
-        if (document.getElementById("errorLog").innerText !== "") return;
+
+        // Se a função acima encontrou erro, ela preencheu o errorLog
+        if (errorLog.innerText !== "") return;
 
         localStorage.setItem('relatorioConfig', JSON.stringify(newConfig));
-        alert("Configurações salvas!");
-        location.reload();
+        alert("Configurações salvas com sucesso!");
+        location.reload(); // Recarrega para aplicar as mudanças
     } catch (e) {
-        document.getElementById("errorLog").innerText = "Erro no JSON: Verifique vírgulas ou chaves faltantes.";
+        errorLog.innerText = "Erro no JSON: Verifique vírgulas, chaves ou sintaxe.";
+        console.error("Erro ao salvar:", e);
     }
 }
 
 
+function resetConfig() {
+    if (confirm("Isso apagará todas as suas alterações e restaurará o padrão. Continuar?")) {
+        localStorage.removeItem('relatorioConfig');
+        location.reload();
+    }
+}
+
+function stripComments(jsonString) {
+    // Remove tudo que for comentário de linha // ou bloco /* */
+    // .trim() ajuda a limpar espaços vazios deixados no topo/fim
+    return jsonString.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "").trim();
+}
+
+function formatarJSON() {
+    try {
+        // 1. Pega o conteúdo atual
+        const content = editorInstance.getValue();
+        // 2. Limpa comentários
+        const cleanContent = stripComments(content);
+        // 3. Converte para objeto e depois para string formatada
+        const parsed = JSON.parse(cleanContent);
+        const formatted = JSON.stringify(parsed, null, 4);
+        
+        // 4. Atualiza o editor
+        editorInstance.setValue(formatted);
+    } catch (e) {
+        alert("Não consigo formatar: O JSON está com erro de sintaxe.");
+    }
+}
 function validateTemplates(config) {
     const errorLog = document.getElementById("errorLog");
     errorLog.innerText = ""; // Limpa erros anteriores
@@ -289,8 +361,8 @@ function share() {
     if (navigator.share) navigator.share({ text: texto });
     else window.open("https://wa.me/?text=" + encodeURIComponent(texto));
 
-      // Salva no histórico ao copiar
-   salvarNoHistorico(texto); // Única chamada, menos chance de erro
+    // Salva no histórico ao copiar
+    salvarNoHistorico(texto); // Única chamada, menos chance de erro
     renderizarHistorico();
 }
 
@@ -299,7 +371,7 @@ function salvarNoHistorico(texto) {
     if (!texto || texto.length < 10) return; // Não salva textos curtos ou vazios
 
     let historico = JSON.parse(localStorage.getItem('relatorioHistorico')) || [];
-    
+
     // Evita duplicados (se o último for igual ao atual, não salva)
     if (historico.length > 0 && historico[0].conteudo === texto) return;
 
@@ -310,8 +382,8 @@ function salvarNoHistorico(texto) {
     };
 
     // Mantém APENAS os 10 últimos
-    historico = [novoItem, ...historico].slice(0, 10); 
-    
+    historico = [novoItem, ...historico].slice(0, 10);
+
     localStorage.setItem('relatorioHistorico', JSON.stringify(historico));
     renderizarHistorico();
 }
@@ -327,14 +399,16 @@ async function copiar() {
 
 function removerDoHistorico(id) {
     if (!confirm("Deseja excluir este relatório?")) return;
-    
+
     let historico = JSON.parse(localStorage.getItem('relatorioHistorico')) || [];
     historico = historico.filter(item => Number(item.id) !== Number(id));
-    
+
     localStorage.setItem('relatorioHistorico', JSON.stringify(historico));
     renderizarHistorico();
     closeSheet(); // Fecha a sheet se estiver aberta
 }
+
+
 
 function salvarArquivo() {
     // Pega o conteúdo que está na Sheet
@@ -342,7 +416,7 @@ function salvarArquivo() {
     const blob = new Blob([conteudo], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    
+
     a.href = url;
     a.download = `relatorio-${new Date().getTime()}.txt`;
     a.click();
@@ -355,9 +429,9 @@ function openSheet(id) {
     const dialog = document.getElementById("reportDialog");
     const historico = JSON.parse(localStorage.getItem('relatorioHistorico')) || [];
     const item = historico.find(i => Number(i.id) === Number(id));
-    
+
     if (!item) return;
-    
+
     document.getElementById("sheetContent").innerHTML = `
         <h3>Relatório de ${item.data}</h3>
         <pre style="white-space: pre-wrap; background: #F2F2F7; padding: 15px; border-radius: 14px;">${item.conteudo}</pre>
@@ -366,11 +440,11 @@ function openSheet(id) {
             <button onclick="salvarArquivo()" style="background: var(--success); border: none; padding: 12px; border-radius: 14px; color: white; cursor: pointer;">Salvar</button>
         </div>
     `;
-    
-    window.currentReportContent = item.conteudo;
-    dialog.showModal(); 
 
-    
+    window.currentReportContent = item.conteudo;
+    dialog.showModal();
+
+
     // Força o navegador a reconhecer o estado para disparar a transição
     // (Apenas se a animação não disparar sozinha no seu navegador)
     requestAnimationFrame(() => {
@@ -407,7 +481,7 @@ function copiarDoHistorico() {
 function renderizarHistorico() {
     const lista = document.getElementById("listaHistorico");
     const historico = JSON.parse(localStorage.getItem('relatorioHistorico')) || [];
-    
+
     lista.innerHTML = historico.map(item => `
         <div class="hist-item" style="display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f0f0f0;">
             <div onclick="openSheet(${item.id})" style="flex-grow: 1; cursor: pointer;">
