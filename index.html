@@ -460,12 +460,13 @@
         <div id="sheetContent" style="padding: 20px;"></div>
     </dialog>
 
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./service-worker.js')
-                .then(() => console.log('PWA Service Worker registrado!'));
-        }
-    </script>
+   <script>
+    if ('serviceWorker' in navigator) {
+        // Sem a barra inicial para ser relativo ao diretório do projeto
+        navigator.serviceWorker.register('service-worker.js')
+            .then(() => console.log('PWA Service Worker registrado!'));
+    }
+</script>
     <script src="app.js"></script>
 
 </body>
