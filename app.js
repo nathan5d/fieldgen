@@ -1,3 +1,4 @@
+
 // 1. Definição da Configuração Inicial (Padrão)
 const defaultConfig = {
     "1": {
