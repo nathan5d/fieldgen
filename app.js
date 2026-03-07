@@ -67,6 +67,8 @@ function init() {
     select.onchange = renderInputs;
     renderInputs();
     renderizarHistorico();
+
+    setConfigMode('simple');
 }
 
 function renderInputs() {
@@ -174,12 +176,12 @@ function build() {
     const data = coletar();
     const dateFormatted = document.getElementById("data").value.split("-").reverse().join("/");
 
+    // Agora usamos os templates diretamente, pois o \n já está contido neles
     let text = renderTemplate(conf.templateHeader, { DATE: dateFormatted });
 
     data.forEach(d => {
         text += renderTemplate(conf.templateLine, d);
     });
-
     // SOMA UNIVERSAL (usando sumField)
     if (conf.templateTotal && conf.sumField) {
         let sum = data.reduce((acc, d) => {
@@ -209,10 +211,18 @@ function build() {
             }
         }
 
-        text += "\n" + renderTemplate(conf.templateTotal, { TOTAL: totalFormatted });
+        // Verificação de consistência:
+        // Se o usuário esqueceu de colocar {TOTAL}, injetamos automaticamente
+        let templateTotal = conf.templateTotal || "📊 TOTAL: {TOTAL}";
+
+        if (!templateTotal.includes("{TOTAL}")) {
+            templateTotal += ": {TOTAL}"; // Ajuste automático se ele esqueceu
+        }
+
+        text += "\n" + renderTemplate(templateTotal, { TOTAL: totalFormatted });
     }
 
-    preview.innerText = text;
+    preview.innerHTML = text.replace(/\n/g, '<br>');
     return text;
 }
 
@@ -226,9 +236,12 @@ function removeRow() {
 
 
 function renderTemplate(template, data) {
-    return template.replace(/\{(.*?)\}/g, (_, key) => data[key] || "");
-}
+    // Primeiro, resolvemos o \n que vem como texto literal
+    let formattedTemplate = template.replace(/\\n/g, "\n");
 
+    // Depois, aplicamos as variáveis
+    return formattedTemplate.replace(/\{(.*?)\}/g, (_, key) => data[key] || "");
+}
 
 
 // Atribui ao botão da engrenagem
@@ -262,10 +275,10 @@ function toggleEditor() {
                 try {
                     const content = stripComments(cm.getValue());
                     JSON.parse(content);
-                    errorLog.innerText = "JSON válido!";
+                    errorLog.innerText = "Formato válido!";
                     errorLog.style.color = "green";
                 } catch (e) {
-                    errorLog.innerText = "JSON inválido: verifique a sintaxe.";
+                    errorLog.innerText = "Formato inválido: verifique a sintaxe.";
                     errorLog.style.color = "red";
                 }
             });
@@ -278,27 +291,20 @@ function toggleEditor() {
 }
 
 function saveSettings() {
-    const errorLog = document.getElementById("errorLog");
-    errorLog.innerText = ""; // Limpa erros anteriores
-
     try {
-        const content = editorInstance.getValue();
-        // Remove comentários para permitir o JSON.parse
-        const cleanContent = stripComments(content);
-        const newConfig = JSON.parse(cleanContent);
-
-        // Validação da lógica do sistema
-        validateTemplates(newConfig);
-
-        // Se a função acima encontrou erro, ela preencheu o errorLog
-        if (errorLog.innerText !== "") return;
-
-        localStorage.setItem('relatorioConfig', JSON.stringify(newConfig));
-        alert("Configurações salvas com sucesso!");
-        location.reload(); // Recarrega para aplicar as mudanças
+        if (configMode === "simple") {
+            saveSimpleConfig();
+        } else {
+            saveAdvancedConfig();
+        }
+        
+        // Agora o build() roda para ambos os casos de forma garantida
+        build();
+        
+        // Opcional: fechar o editor após salvar
+        toggleEditor(); 
     } catch (e) {
-        errorLog.innerText = "Erro no JSON: Verifique vírgulas, chaves ou sintaxe.";
-        console.error("Erro ao salvar:", e);
+        alert(e.message);
     }
 }
 
@@ -316,6 +322,99 @@ function stripComments(jsonString) {
     return jsonString.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "").trim();
 }
 
+
+let configMode = "simple";
+
+function setConfigMode(mode) {
+    configMode = mode;
+
+    // Atualiza classes dos botões
+    document.getElementById("btnSimple").classList.toggle("active", mode === "simple");
+    document.getElementById("btnAdvanced").classList.toggle("active", mode === "advanced");
+
+    // Alterna visibilidade
+    document.getElementById("simpleEditor").style.display = (mode === "simple") ? "block" : "none";
+    document.getElementById("advancedEditor").style.display = (mode === "advanced") ? "block" : "none";
+    if (mode === "simple") {
+        renderSimpleEditor();
+    } else {
+        // Atualiza o editor de código com o estado atual mais recente
+        if (editorInstance) {
+            editorInstance.setValue(JSON.stringify(currentConfig, null, 4));
+            editorInstance.refresh();
+        }
+    }
+}
+function renderSimpleEditor() {
+    const container = document.getElementById("simpleEditor");
+    const type = select.value;
+    const conf = currentConfig[type];
+
+    const varList = conf.fields.map(f => `{${f.name}}`).join(", ");
+
+    container.innerHTML = `
+        <label>Nome do relatório</label>
+        <input id="conf_name" value="${conf.name}">
+
+        <label>Template Header</label>
+        <input id="conf_header" value="${conf.templateHeader}">
+
+        <label>Template Linha</label>
+        <div style="display:flex; gap: 5px; margin-bottom: 2px;">
+            <input id="conf_line" value="${conf.templateLine.replace(/\\n/g, '\\n')}">
+        </div>
+        <small style="color: #666; display: block; margin-bottom: 15px;">Variáveis: ${varList}</small>
+        
+        <label>Template Total</label>
+        <input id="conf_total" value="${conf.templateTotal || '📊 TOTAL: {TOTAL}'}">
+        <small style="color: #666; display: block; margin-bottom: 15px;">
+            Use a variável <b>{TOTAL}</b>. Ex: "Total: {TOTAL} un."
+        </small>
+
+        <label>Campo de soma</label>
+        <select id="conf_sumfield" style="margin-top: 5px;">
+            ${conf.fields.map(f => `
+                <option value="${f.name}" ${f.name === conf.sumField ? 'selected' : ''}>
+                    ${f.name}
+                </option>
+            `).join("")}
+        </select>
+    `;
+}
+
+
+function saveSimpleConfig() {
+    const type = select.value;
+    const conf = currentConfig[type];
+
+    conf.name = document.getElementById("conf_name").value;
+    conf.templateHeader = document.getElementById("conf_header").value;
+    conf.templateLine = document.getElementById("conf_line").value;
+    conf.templateTotal = document.getElementById("conf_total").value;
+
+    // Agora o campo de soma vem direto do select
+    conf.sumField = document.getElementById("conf_sumfield").value;
+
+    localStorage.setItem('relatorioConfig', JSON.stringify(currentConfig));
+    alert("Configuração salva!");
+}
+
+function saveAdvancedConfig() {
+    try {
+        const content = stripComments(editorInstance.getValue());
+        const parsed = JSON.parse(content);
+        validateTemplates(parsed);
+
+        currentConfig = parsed;
+        localStorage.setItem('relatorioConfig', JSON.stringify(currentConfig));
+        alert("Configuração avançada salva com sucesso!");
+        
+        // Em vez de location.reload(), apenas atualize o seletor se necessário
+        // e deixe o saveSettings() chamar o build()
+    } catch (e) {
+        throw new Error("Erro no JSON: verifique a sintaxe!");
+    }
+}
 function formatarJSON() {
     try {
         // 1. Pega o conteúdo atual
@@ -325,7 +424,7 @@ function formatarJSON() {
         // 3. Converte para objeto e depois para string formatada
         const parsed = JSON.parse(cleanContent);
         const formatted = JSON.stringify(parsed, null, 4);
-        
+
         // 4. Atualiza o editor
         editorInstance.setValue(formatted);
     } catch (e) {
@@ -359,7 +458,7 @@ function validateTemplates(config) {
 
 function share() {
     const texto = build();
-    if (navigator.share) navigator.share({ text: texto });
+    if (navigator.share && navigator.canShare) navigator.share({ text: texto });
     else window.open("https://wa.me/?text=" + encodeURIComponent(texto));
 
     // Salva no histórico ao copiar

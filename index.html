@@ -47,6 +47,50 @@
             --button-text: #FFFFFF;
         }
 
+        /* Base para os botões de modo */
+        .btn-mode {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 12px;
+            background: #E5E5EA;
+            /* Cor de fundo neutro */
+            color: var(--gray);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        /* Estado ativo (selecionado) */
+        .btn-mode.active {
+            background: var(--primary);
+            color: var(--button-text);
+        }
+
+        /* Opcional: Estilo elegante para os botões do editor */
+        .btn-editor {
+            padding: 12px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+
+        /* Exemplo para os botões do rodapé */
+
+
+        .btn-add {
+            background: var(--primary);
+            color: white;
+            padding: 12px;
+            border-radius: 12px;
+            border: none;
+        }
+
+        /* Exemplo para os botões do rodapé */
+
+        /*GERAL*/
         body {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
             background: var(--bg);
@@ -196,15 +240,24 @@
         .preview {
             background: #1C1C1E;
             color: #32D74B;
-            /* Verde brilhante do iOS Dark Mode */
             padding: 20px;
             margin-top: 24px;
             border-radius: 18px;
             font-family: "SF Mono", "Menlo", monospace;
             font-size: 13px;
             line-height: 1.5;
+            /* ESTA É A PROPRIEDADE CHAVE */
             white-space: pre-wrap;
+            word-wrap: break-word;
             box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+
+        #preview {
+            white-space: pre-wrap;
+            /* Isso diz ao navegador: "respeite as quebras de linha do texto" */
+            word-wrap: break-word;
+            /* Garante que linhas muito longas não quebrem o layout */
         }
 
 
@@ -404,7 +457,7 @@
             width: 20px;
         }
 
-     
+
 
         /* Isso garante que os ícones fiquem brancos/visíveis em temas escuros */
         i {
@@ -458,9 +511,65 @@
         </div>
 
         <div id="preview" class="preview">Aguardando...</div>
+
+           <div id="editorContainer"
+            style="display: none; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;">
+
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+
+                <h3 style="margin:0; font-size:16px;">⚙️ Configuração</h3>
+
+                <button onclick="toggleEditor()"
+                    style="background:#E5E5EA; color:#000; width:30px; height:30px; border-radius:50%;">✕</button>
+
+            </div>
+
+
+            <div style="display:flex; gap:10px; margin:15px 0;">
+                <button onclick="setConfigMode('simple')" id="btnSimple" class="btn-mode active">Modo Simples</button>
+                <button onclick="setConfigMode('advanced')" id="btnAdvanced" class="btn-mode">Modo Avançado</button>
+            </div>
+
+
+            <!-- EDITOR SIMPLES -->
+            <div id="simpleEditor"></div>
+
+
+            <!-- EDITOR AVANÇADO -->
+            <div id="advancedEditor" style="display:none;">
+
+                <textarea id="jsonEditor" style="width:100%; height:250px; font-family:monospace; font-size:12px; padding:10px;
+            border-radius:12px; border:1px solid #ddd; background:#F9F9FB;"></textarea>
+
+                <div id="errorLog"
+                    style="color: var(--danger); font-size: 12px; margin: 5px 0; min-height: 15px; font-weight: bold;">
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px;">
+                    <button onclick="formatarJSON()"
+                        style="background: #e1f5fe; color: #0288d1; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                        <i data-lucide="form" style="width: 16px;  margin-right: 8px;"></i> Formatar
+                    </button>
+                    <button onclick="resetConfig()"
+                        style="background: #ffebee; color: #d32f2f; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                        <i data-lucide="rotate-ccw" style="width: 16px;  margin-right: 8px;"></i> Resetar
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px;">
+                <button onclick="toggleEditor()" class="btn-preview">Cancelar</button>
+                <button onclick="saveSettings()" class="btn-add">Salvar</button>
+            </div>
+
+        </div>
+        
         <div id="historicoContainer" style="margin-top: 30px; padding: 20px; background: #fff; border-radius: 18px;">
-            <h4 style="color:var(--indigo); display: flex; justify-content: center; align-items: center;"> <i
-                    data-lucide="history" style="margin-right: 8px; width: 20px;"></i> Histórico Recente</h3>
+            <h4 style="color:var(--indigo); display: flex; justify-content: center; align-items: center;">
+                <i data-lucide="history" style="margin-right: 8px; width: 20px;"></i> Histórico Recente</h3>
                 <div id="listaHistorico"></div>
         </div>
 
@@ -471,41 +580,7 @@
             </button>
         </div>
 
-        <div id="editorContainer"
-            style="display: none; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <h3 style="margin: 0; font-size: 16px;">⚙️ Configuração</h3>
-                <button onclick="toggleEditor()"
-                    style="background: #E5E5EA; color: #000; width: 30px; height: 30px; border-radius: 50%; padding: 0; font-size: 14px;">✕</button>
-            </div>
 
-            <p style="font-size: 12px; color: var(--gray); margin-bottom: 10px;">Altere os templates e campos abaixo:
-            </p>
-
-            <textarea id="jsonEditor"
-                style="width: 100%; height: 250px; font-family: monospace; font-size: 12px; padding: 10px; border-radius: 12px; border: 1px solid #ddd; background: #F9F9FB; box-sizing: border-box;"></textarea>
-
-            <div id="errorLog"
-                style="color: var(--danger); font-size: 12px; margin: 5px 0; min-height: 15px; font-weight: bold;">
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
-                <button onclick="formatarJSON()"
-                    style="background: #e1f5fe; color: #0288d1; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px;">
-                    <i data-lucide="form" style="width: 16px;  margin-right: 8px;"></i> Formatar
-                </button>
-                <button onclick="resetConfig()"
-                    style="background: #ffebee; color: #d32f2f; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px;">
-                     <i data-lucide="rotate-ccw" style="width: 16px;  margin-right: 8px;"></i>  Resetar
-                </button>
-
-                <button class="btn-preview" onclick="toggleEditor()"
-                    style="grid-column: span 1; background: var(--gray); font-size: 14px;">Cancelar</button>
-                <button class="btn-add" onclick="saveSettings()" style="grid-column: span 1; font-size: 14px;">
-                    <i data-lucide="save" style="width: 18px;  margin-right: 8px;"></i>
-                    Salvar</button>
-            </div>
-        </div>
 
     </div>
 
