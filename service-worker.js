@@ -10,7 +10,8 @@ const ASSETS = [
     '/lib/codemirror/codemirror.css',
     '/lib/codemirror/theme/dracula.css',
     '/lib/codemirror/codemirror.js',
-    '/lib/codemirror/mode/javascript/javascript.js'
+    '/lib/codemirror/mode/javascript/javascript.js',
+    '/lib/lucide/lucide.min.js'
 ];
 
 self.addEventListener('install', e => {

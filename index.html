@@ -15,11 +15,13 @@
 
     <link rel="stylesheet" href="lib/codemirror/codemirror.css">
     <link rel="stylesheet" href="lib/codemirror/theme/dracula.css">
-    
+
 
     <script src="lib/codemirror/codemirror.js"></script>
 
     <script src="lib/codemirror/mode/javascript/javascript.js"></script>
+    <script src="lib/lucide/lucide.min.js"></script>
+    <script src="main.js"></script>
 
     <link rel="manifest" href="manifest.json">
 
@@ -175,6 +177,14 @@
             background: var(--gray);
         }
 
+        .btn-settings {
+            color: #000;
+
+            &:hover {
+                color: #333;
+            }
+        }
+
         .btn-copy {
             background: var(--indigo);
         }
@@ -197,14 +207,7 @@
             box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
         }
 
-        /* Ajuste nos botões para acomodar os ícones */
-        button svg {
-            width: 24px;
-            height: 24px;
-            fill: white;
-            /* Cor do ícone */
-            transition: transform 0.2s ease;
-        }
+
 
         button:hover svg {
             transform: scale(1.1);
@@ -249,7 +252,6 @@
 
         #btnConfig:hover svg {
             transform: rotate(90deg);
-            fill: var(--primary);
         }
 
         .hist-item {
@@ -383,20 +385,37 @@
         }
 
         /* Ajusta o editor para o tema padrão */
-.CodeMirror {
-    height: 300px;
-    border-radius: 12px;
-    border: 1px solid #ddd;
-    font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
-    font-size: 14px;
-    background: #f9f9fb;
-}
+        .CodeMirror {
+            height: 300px;
+            border-radius: 12px;
+            border: 1px solid #ddd;
+            font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+            font-size: 14px;
+            background: #f9f9fb;
+        }
 
-/* Garante que o scroll do editor funcione no mobile */
-.CodeMirror-scroll {
-    overflow-y: auto;
-    overflow-x: auto;
-}
+        /* Garante que o scroll do editor funcione no mobile */
+        .CodeMirror-scroll {
+            overflow-y: auto;
+            overflow-x: auto;
+        }
+
+        [data-lucide] {
+            width: 20px;
+        }
+
+     
+
+        /* Isso garante que os ícones fiquem brancos/visíveis em temas escuros */
+        i {
+            display: flex;
+            color: currentColor;
+        }
+
+        /* Ou force a cor específica */
+        .btn-add i {
+            stroke: white;
+        }
     </style>
 
 </head>
@@ -418,51 +437,37 @@
         <div class="actions">
 
             <button class="btn-add" onclick="addRow()" title="Adicionar">
-                <svg viewBox="0 0 24 24">
-                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-                </svg>
+                <i data-lucide="plus"></i>
             </button>
 
             <button class="btn-remove" onclick="removeRow()" title="Remover">
-                <svg viewBox="0 0 24 24">
-                    <path d="M19 13H5v-2h14v2z" />
-                </svg>
+                <i data-lucide="minus"></i>
             </button>
 
             <button class="btn-preview" onclick="build()" title="Visualizar">
-                <svg viewBox="0 0 24 24">
-                    <path
-                        d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
-                </svg>
+                <i data-lucide="eye"></i>
             </button>
 
             <button class="btn-copy" onclick="copiar()" title="Copiar">
-                <svg viewBox="0 0 24 24">
-                    <path
-                        d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
-                </svg>
+                <i data-lucide="copy"></i>
             </button>
 
             <button class="btn-share" onclick="share()" title="Compartilhar">
-                <svg viewBox="0 0 24 24">
-                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                </svg>
+                <i data-lucide="share"></i>
             </button>
         </div>
 
         <div id="preview" class="preview">Aguardando...</div>
         <div id="historicoContainer" style="margin-top: 30px; padding: 20px; background: #fff; border-radius: 18px;">
-            <h3>📜 Histórico Recente</h3>
-            <div id="listaHistorico"></div>
+            <h4 style="color:var(--indigo); display: flex; justify-content: center; align-items: center;"> <i
+                    data-lucide="history" style="margin-right: 8px; width: 20px;"></i> Histórico Recente</h3>
+                <div id="listaHistorico"></div>
         </div>
 
         <div
             style="text-align: right;margin-bottom: -20px;display: flex;justify-content: right;position: absolute;top: 10px;right: 20px;">
-            <button id="btnConfig" class="btn-preview" style="width: 44px; background: none; box-shadow: none;">
-                <svg viewBox="0 0 24 24" style="fill: var(--gray);">
-                    <path
-                        d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.81,11.69,4.81,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.5c-1.93,0-3.5-1.57-3.5-3.5 s1.57-3.5,3.5-3.5s3.5,1.57,3.5,3.5S13.93,15.5,12,15.5z" />
-                </svg>
+            <button id="btnConfig" class="btn-settings" style="width: 44px; background: none; box-shadow: none;">
+                <i data-lucide="settings"></i>
             </button>
         </div>
 
@@ -480,19 +485,26 @@
             <textarea id="jsonEditor"
                 style="width: 100%; height: 250px; font-family: monospace; font-size: 12px; padding: 10px; border-radius: 12px; border: 1px solid #ddd; background: #F9F9FB; box-sizing: border-box;"></textarea>
 
-           <div id="errorLog" style="color: var(--danger); font-size: 12px; margin: 5px 0; min-height: 15px; font-weight: bold;"></div>
+            <div id="errorLog"
+                style="color: var(--danger); font-size: 12px; margin: 5px 0; min-height: 15px; font-weight: bold;">
+            </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
-        <button onclick="formatarJSON()" style="background: #e1f5fe; color: #0288d1; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px;">
-            🧹 Formatar
-        </button>
-        <button onclick="resetConfig()" style="background: #ffebee; color: #d32f2f; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px;">
-            🔄 Resetar
-        </button>
-        
-        <button class="btn-preview" onclick="toggleEditor()" style="grid-column: span 1; background: var(--gray); font-size: 14px;">Cancelar</button>
-        <button class="btn-add" onclick="saveSettings()" style="grid-column: span 1; font-size: 14px;">💾 Salvar</button>
-    </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+                <button onclick="formatarJSON()"
+                    style="background: #e1f5fe; color: #0288d1; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                    <i data-lucide="form" style="width: 16px;  margin-right: 8px;"></i> Formatar
+                </button>
+                <button onclick="resetConfig()"
+                    style="background: #ffebee; color: #d32f2f; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                     <i data-lucide="rotate-ccw" style="width: 16px;  margin-right: 8px;"></i>  Resetar
+                </button>
+
+                <button class="btn-preview" onclick="toggleEditor()"
+                    style="grid-column: span 1; background: var(--gray); font-size: 14px;">Cancelar</button>
+                <button class="btn-add" onclick="saveSettings()" style="grid-column: span 1; font-size: 14px;">
+                    <i data-lucide="save" style="width: 18px;  margin-right: 8px;"></i>
+                    Salvar</button>
+            </div>
         </div>
 
     </div>
