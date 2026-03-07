@@ -1,6 +1,7 @@
 
 // 1. Definição da Configuração Inicial (Padrão)
 const defaultConfig = {
+
     "1": {
         "name": "Lotes",
         "fields": [
@@ -11,8 +12,12 @@ const defaultConfig = {
                 "pad": 2,
                 "placeholder": "01"
             },
-
-            { "name": "LOTS", "type": "number", "pad": 2, "placeholder": "01" },
+            {
+                "name": "LOTS",
+                "type": "number",
+                "pad": 2,
+                "placeholder": "01"
+            },
             {
                 "name": "WEIGHT",
                 "label": "Peso (kg)",
@@ -22,22 +27,31 @@ const defaultConfig = {
                 "placeholder": "0,000"
             }
         ],
-        "templateHeader": "📌 Report - {DATE}\n\n",
-        "templateLine": "🔹 Code {COD} - Lots: {LOTS}\nWeight: {WEIGHT}\n",
-        "templateTotal": "📊 TOTAL: {TOTAL}",
+        "templateHeader": "📌 Report - {DATE} \\n\\n",
+        "templateLine": "🔹 Cod.: {COD} - Lotes: {LOTS} Peso Bruto: {WEIGHT} \\n",
+        "templateTotal": "📊 TOTAL: {TOTAL} ",
         "sumField": "LOTS"
     },
     "2": {
         "name": "Resumo",
         "fields": [
-            { "name": "NAME", label: "NOME", "type": "text" },
-            { "name": "QTD", "type": "number", "pad": 2 }
+            {
+                "name": "NAME",
+                "label": "NOME",
+                "type": "text"
+            },
+            {
+                "name": "QTD",
+                "type": "number",
+                "pad": 2
+            }
         ],
-        "templateHeader": "Resumo do dia {DATE}\n\n",
-        "templateLine": "{QTD} {NAME}\n",
-        "templateTotal": "📊 TOTAL: {TOTAL}",
+        "templateHeader": "Resumo do dia {DATE} \\n\\n",
+        "templateLine": "{QTD} {NAME} \\n",
+        "templateTotal": "📊 TOTAL: {TOTAL} ",
         "sumField": "QTD"
     }
+
 
 };
 
@@ -64,7 +78,25 @@ function init() {
         select.appendChild(o);
     }
     document.getElementById("data").value = new Date().toISOString().split("T")[0];
-    select.onchange = renderInputs;
+    // Adiciona o listener da data
+    document.getElementById("data").addEventListener("input", build);
+    
+    select.addEventListener("change", () => {
+        // 1. Atualiza o formulário (o que você já faz)
+        renderInputs();
+
+        // 2. Se o editor estiver visível, atualiza o conteúdo dele para o novo tipo
+        if (editorDiv.style.display === "block") {
+            if (configMode === "simple") {
+                renderSimpleEditor(); // Re-renderiza os inputs do simples
+            } else {
+                // Se for avançado, o CodeMirror precisa ser atualizado
+                if (editorInstance) {
+                    editorInstance.setValue(JSON.stringify(currentConfig, null, 4));
+                }
+            }
+        }
+    });
     renderInputs();
     renderizarHistorico();
 
@@ -297,12 +329,12 @@ function saveSettings() {
         } else {
             saveAdvancedConfig();
         }
-        
+
         // Agora o build() roda para ambos os casos de forma garantida
         build();
-        
+
         // Opcional: fechar o editor após salvar
-        toggleEditor(); 
+        toggleEditor();
     } catch (e) {
         alert(e.message);
     }
@@ -408,7 +440,7 @@ function saveAdvancedConfig() {
         currentConfig = parsed;
         localStorage.setItem('relatorioConfig', JSON.stringify(currentConfig));
         alert("Configuração avançada salva com sucesso!");
-        
+
         // Em vez de location.reload(), apenas atualize o seletor se necessário
         // e deixe o saveSettings() chamar o build()
     } catch (e) {
