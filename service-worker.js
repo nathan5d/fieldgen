@@ -8,6 +8,7 @@ const ASSETS = [
     '/icons/icon-512.png',
     // Arquivos do CodeMirror (ajuste os caminhos conforme sua estrutura de pastas)
     '/lib/codemirror/codemirror.css',
+    '/lib/codemirror/theme/dracula.css',
     '/lib/codemirror/codemirror.js',
     '/lib/codemirror/mode/javascript/javascript.js'
 ];
