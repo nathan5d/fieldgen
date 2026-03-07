@@ -2,6 +2,7 @@ const CACHE_NAME = 'relatorio-v1';
 const ASSETS = [
     '/', // Cache da raiz
     '/index.html',
+    './offline.html',
     '/main.js',
     '/app.js',
     '/manifest.json',
@@ -15,37 +16,21 @@ const ASSETS = [
     '/lib/lucide/lucide.min.js'
 ];
 
+// Instalação: Adiciona tudo ao cache
 self.addEventListener('install', e => {
     e.waitUntil(
-        caches.open(CACHE_NAME).then(cache => {
-            return cache.addAll(ASSETS).catch(err => {
-                console.error('Falha no cache.addAll:', err);
-                // O console mostrará exatamente qual arquivo falhou
-            });
-        })
+        caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
     );
 });
 
+// Fetch: Lógica inteligente
 self.addEventListener('fetch', e => {
-    // Apenas responde a requisições GET
-    if (e.request.method !== 'GET') return;
+    if (e.request.mode !== 'navigate') return; // Apenas navegação
 
     e.respondWith(
-        caches.match(e.request).then(cachedResponse => {
-            // Se encontrar no cache, retorna ele
-            if (cachedResponse) {
-                return cachedResponse;
-            }
-
-            // Se não, tenta buscar na rede
-            return fetch(e.request).catch(() => {
-                // Se a rede falhar (offline), retorna algo vazio ou um fallback
-                // Importante: Não tente buscar recursos dinâmicos se não houver rede
-                return new Response('Conteúdo indisponível offline', {
-                    status: 404,
-                    statusText: 'Not Found'
-                });
-            });
+        fetch(e.request).catch(() => {
+            // Se a rede falhar, retorna o fallback do cache
+            return caches.match(FALLBACK_URL);
         })
     );
 });
