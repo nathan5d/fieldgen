@@ -2,6 +2,7 @@ const CACHE_NAME = 'relatorio-v1';
 const ASSETS = [
     '/', // Cache da raiz
     '/index.html',
+    '/main.js',
     '/app.js',
     '/manifest.json',
     '/icons/icon-192.png',
@@ -17,15 +18,34 @@ const ASSETS = [
 self.addEventListener('install', e => {
     e.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
-            return cache.addAll(ASSETS);
+            return cache.addAll(ASSETS).catch(err => {
+                console.error('Falha no cache.addAll:', err);
+                // O console mostrará exatamente qual arquivo falhou
+            });
         })
     );
 });
 
 self.addEventListener('fetch', e => {
+    // Apenas responde a requisições GET
+    if (e.request.method !== 'GET') return;
+
     e.respondWith(
-        caches.match(e.request).then(res => {
-            return res || fetch(e.request);
+        caches.match(e.request).then(cachedResponse => {
+            // Se encontrar no cache, retorna ele
+            if (cachedResponse) {
+                return cachedResponse;
+            }
+
+            // Se não, tenta buscar na rede
+            return fetch(e.request).catch(() => {
+                // Se a rede falhar (offline), retorna algo vazio ou um fallback
+                // Importante: Não tente buscar recursos dinâmicos se não houver rede
+                return new Response('Conteúdo indisponível offline', {
+                    status: 404,
+                    statusText: 'Not Found'
+                });
+            });
         })
     );
 });
