@@ -2,19 +2,19 @@ const CACHE_NAME = 'relatorio-v2'; // Mude o nome para forçar a atualização
 const FALLBACK_URL = './offline.html';
 
 const ASSETS = [
-    './',
-    './index.html',
-    './offline.html',
-    './main.js',
-    './app.js',
-    './manifest.json',
-    './icons/icon-192.png',
-    './icons/icon-512.png',
-    './lib/codemirror/codemirror.css',
-    './lib/codemirror/theme/dracula.css',
-    './lib/codemirror/codemirror.js',
-    './lib/codemirror/mode/javascript/javascript.js',
-    './lib/lucide/lucide.min.js'
+    '/',
+    '/index.html',
+    '/offline.html',
+    '/main.js',
+    '/app.js',
+    '/manifest.json',
+    '/icons/icon-192.png',
+    '/icons/icon-512.png',
+    '/lib/codemirror/codemirror.css',
+    '/lib/codemirror/theme/dracula.css',
+    '/lib/codemirror/codemirror.js',
+    '/lib/codemirror/mode/javascript/javascript.js',
+    '/lib/lucide/lucide.min.js'
 ];
 
 // Instalação: Adiciona tudo ao cache
