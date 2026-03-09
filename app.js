@@ -116,19 +116,27 @@ function addRow() {
     const row = document.createElement("div");
     row.className = "input-row";
 
-    row.innerHTML = fields.map(c => `
+    row.innerHTML = fields.map(c => {
+        // Lógica para decidir qual teclado abrir no celular
+        let mode = "text"; // Padrão
+        if (c.type === "number") mode = "numeric";
+        if (c.type === "weight") mode = "decimal";
+
+        return `
         <div>
             <label>${c.label || c.name}</label>
             <input type="text" 
                    data-field="${c.name}" 
-                   inputmode="decimal" 
+                   inputmode="${mode}" 
                    class="${c.type}"
                    placeholder="${c.placeholder || ''}">
         </div>
-    `).join("");
+        `;
+    }).join("");
 
     container.appendChild(row);
 }
+
 
 // 5. Listeners de Eventos (Máscara e Auto-Row)
 container.addEventListener("input", e => {
