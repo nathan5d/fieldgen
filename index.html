@@ -469,6 +469,30 @@
         .btn-add i {
             stroke: white;
         }
+
+        /* Ajuste para o botão de configuração no preview */
+        .btn-settings:hover {
+            opacity: 1 !important;
+            background: rgba(255, 255, 255, 0.2) !important;
+        }
+
+        /* Garante que o link de ação pareça um botão ao toque no mobile */
+        #advancedEditor a:active {
+            opacity: 0.5;
+        }
+
+        /* Estilo para o textarea quando o CodeMirror não carregar */
+        #jsonEditor {
+            width: 100%;
+            height: 250px;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid #ddd;
+            background: #F9F9FB;
+            box-sizing: border-box;
+        }
     </style>
 
 </head>
@@ -510,9 +534,17 @@
             </button>
         </div>
 
-        <div id="preview" class="preview">Aguardando...</div>
+        <div style="position: relative; margin-top: 24px;">
+            <div id="preview" class="preview">Aguardando...</div>
 
-           <div id="editorContainer"
+            <button id="btnConfig" class="btn-settings" style="position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; 
+                   background: rgba(255,255,255,0.1); backdrop-filter: blur(4px); 
+                   border-radius: 8px; box-shadow: none; padding: 0; color: #32D74B; opacity: 0.6;">
+                <i data-lucide="settings" style="width: 16px;"></i>
+            </button>
+        </div>
+
+        <div id="editorContainer"
             style="display: none; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;">
 
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -537,6 +569,17 @@
 
             <!-- EDITOR AVANÇADO -->
             <div id="advancedEditor" style="display:none;">
+                <div
+                    style="display: flex; justify-content: flex-end; gap: 15px; margin-bottom: 8px; padding-right: 5px;">
+                    <a href="javascript:void(0)" onclick="copiarConfigJSON()"
+                        style="color: var(--primary); font-size: 12px; text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                        <i data-lucide="copy" style="width: 12px;"></i> Copiar JSON
+                    </a>
+                    <a href="javascript:void(0)" onclick="colarConfigJSON()"
+                        style="color: var(--primary); font-size: 12px; text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                        <i data-lucide="clipboard-paste" style="width: 12px;"></i> Colar JSON
+                    </a>
+                </div>
 
                 <textarea id="jsonEditor" style="width:100%; height:250px; font-family:monospace; font-size:12px; padding:10px;
             border-radius:12px; border:1px solid #ddd; background:#F9F9FB;"></textarea>
@@ -566,7 +609,7 @@
             </div>
 
         </div>
-        
+
         <div id="historicoContainer" style="margin-top: 30px; padding: 20px; background: #fff; border-radius: 18px;">
             <h4 style="color:var(--indigo); display: flex; justify-content: center; align-items: center;">
                 <i data-lucide="history" style="margin-right: 8px; width: 20px;"></i> Histórico Recente</h3>

@@ -30,7 +30,11 @@ const defaultConfig = {
         "templateHeader": "📌 Report - {DATE} \\n\\n",
         "templateLine": "🔹 Cod.: {COD} - Lotes: {LOTS} Peso Bruto: {WEIGHT} \\n",
         "templateTotal": "📊 TOTAL: {TOTAL} ",
-        "sumField": "LOTS"
+        "sumField": "LOTS",
+        "sums": {
+            "TOTAL": "LOTS",
+            "TOTAL_PESO": "WEIGHT"
+        }
     },
     "2": {
         "name": "Resumo",
@@ -49,7 +53,10 @@ const defaultConfig = {
         "templateHeader": "Resumo do dia {DATE} \\n\\n",
         "templateLine": "{QTD} {NAME} \\n",
         "templateTotal": "📊 TOTAL: {TOTAL} ",
-        "sumField": "QTD"
+        "sumField": "QTD",
+        "sums": {
+            "TOTAL": "QTD"
+        }
     }
 
 
@@ -70,6 +77,7 @@ const jsonEditor = document.getElementById("jsonEditor");
 
 // 4. Inicialização da Interface
 function init() {
+    // 1. Popula o select primeiro
     select.innerHTML = "";
     for (let k in currentConfig) {
         let o = document.createElement("option");
@@ -77,32 +85,18 @@ function init() {
         o.innerText = currentConfig[k].name;
         select.appendChild(o);
     }
-    document.getElementById("data").value = new Date().toISOString().split("T")[0];
-    // Adiciona o listener da data
-    document.getElementById("data").addEventListener("input", build);
-    
-    select.addEventListener("change", () => {
-        // 1. Atualiza o formulário (o que você já faz)
-        renderInputs();
 
-        // 2. Se o editor estiver visível, atualiza o conteúdo dele para o novo tipo
-        if (editorDiv.style.display === "block") {
-            if (configMode === "simple") {
-                renderSimpleEditor(); // Re-renderiza os inputs do simples
-            } else {
-                // Se for avançado, o CodeMirror precisa ser atualizado
-                if (editorInstance) {
-                    editorInstance.setValue(JSON.stringify(currentConfig, null, 4));
-                }
-            }
-        }
-    });
-    renderInputs();
-    renderizarHistorico();
+    // 2. Define a data padrão
+    document.getElementById("data").value = new Date().toISOString().split("T")[0];
+    document.getElementById("data").addEventListener("input", build);
+
+    // 3. Carrega o rascunho (isso já vai renderizar as linhas ou as padrão)
     carregarRascunho();
+
+    // 4. Inicializa o resto
+    renderizarHistorico();
     setConfigMode('simple');
 }
-
 function renderInputs() {
     container.innerHTML = "";
     addRow();
@@ -116,22 +110,19 @@ function addRow() {
     const row = document.createElement("div");
     row.className = "input-row";
 
+    // Dentro da função addRow, garanta a adição do atributo:
     row.innerHTML = fields.map(c => {
-        // Lógica para decidir qual teclado abrir no celular
-        let mode = "text"; // Padrão
-        if (c.type === "number") mode = "numeric";
-        if (c.type === "weight") mode = "decimal";
-
+        let mode = c.type === "number" ? "numeric" : (c.type === "weight" ? "decimal" : "text");
         return `
-        <div>
-            <label>${c.label || c.name}</label>
-            <input type="text" 
-                   data-field="${c.name}" 
-                   inputmode="${mode}" 
-                   class="${c.type}"
-                   placeholder="${c.placeholder || ''}">
-        </div>
-        `;
+    <div>
+        <label>${c.label || c.name}</label>
+        <input type="text" 
+               data-field="${c.name}" 
+               inputmode="${mode}" 
+               class="${c.type}"
+               autocomplete="off" 
+               placeholder="${c.placeholder || ''}">
+    </div>`;
     }).join("");
 
     container.appendChild(row);
@@ -141,53 +132,66 @@ function addRow() {
 function salvarRascunho() {
     const type = select.value;
     const rows = document.querySelectorAll(".input-row");
-    
-    // Transformamos cada linha em um objeto separado
-    const rascunhoData = Array.from(rows).map(row => {
-        let rowObj = {};
-        const inputs = row.querySelectorAll("input[data-field]");
-        inputs.forEach(i => {
-            rowObj[i.getAttribute("data-field")] = i.value;
-        });
-        return rowObj;
-    });
 
-    const rascunho = {
-        type: type,
+    // Pega todos os rascunhos existentes
+    let todosRascunhos = JSON.parse(localStorage.getItem("fieldGenRascunhos")) || {};
+
+    // Atualiza apenas o tipo atual
+    todosRascunhos[type] = {
         date: document.getElementById("data").value,
-        rows: rascunhoData // Agora salvamos o array de linhas
+        rows: Array.from(rows).map(row => {
+            let rowObj = {};
+            row.querySelectorAll("input[data-field]").forEach(i => {
+                rowObj[i.getAttribute("data-field")] = i.value;
+            });
+            return rowObj;
+        })
     };
-    
-    localStorage.setItem("rascunhoRelatorio", JSON.stringify(rascunho));
+
+    localStorage.setItem("fieldGenRascunhos", JSON.stringify(todosRascunhos));
 }
 
 
 function carregarRascunho() {
-    const salvo = localStorage.getItem("rascunhoRelatorio");
-    if (!salvo) return;
+    const todosRascunhos = JSON.parse(localStorage.getItem("fieldGenRascunhos")) || {};
+    const type = select.value;
+    const rascunho = todosRascunhos[type];
 
-    const rascunho = JSON.parse(salvo);
-    
-    // 1. Define o tipo e a data
-    select.value = rascunho.type;
+    if (!rascunho) {
+        // Se não tem rascunho, garante que o form esteja limpo (ou padrão)
+        renderInputs();
+        return;
+    }
+
+    // Define a data
     document.getElementById("data").value = rascunho.date;
-    
-    // 2. Limpa e recria a quantidade de linhas necessárias
+
+    // Recria as linhas
     container.innerHTML = "";
     rascunho.rows.forEach(rowData => {
-        addRow(); // Cria a linha no DOM
-        
-        // Preenche cada campo daquela linha específica
+        addRow();
         const lastRow = container.lastElementChild;
         Object.keys(rowData).forEach(fieldName => {
             const input = lastRow.querySelector(`[data-field="${fieldName}"]`);
             if (input) input.value = rowData[fieldName];
         });
     });
-    
+
     build();
 }
 
+
+function limparRascunhoAtual() {
+    const type = select.value;
+    let todosRascunhos = JSON.parse(localStorage.getItem("fieldGenRascunhos")) || {};
+
+    // Remove apenas o rascunho do tipo atual
+    delete todosRascunhos[type];
+    localStorage.setItem("fieldGenRascunhos", JSON.stringify(todosRascunhos));
+
+    // Reseta a interface (volta para o estado inicial de 2 linhas vazias)
+    renderInputs();
+}
 
 
 // 5. Listeners de Eventos (Máscara e Auto-Row)
@@ -220,6 +224,22 @@ container.addEventListener("blur", e => {
     build();
 }, true);
 
+
+// Substitua o listener atual do select por este:
+select.addEventListener("change", () => {
+    // 1. Apenas troca o valor. O carregarRascunho já limpa o container.
+    // O build() também será chamado dentro do carregarRascunho.
+    carregarRascunho();
+
+    // 2. Atualiza o editor se estiver visível
+    if (editorDiv.style.display === "block") {
+        if (configMode === "simple") {
+            renderSimpleEditor();
+        } else if (editorInstance) {
+            editorInstance.setValue(JSON.stringify(currentConfig, null, 4));
+        }
+    }
+});
 // No COLETAR (para salvar os dados formatados)
 function coletar() {
     const type = select.value;
@@ -269,56 +289,72 @@ function build() {
     const data = coletar();
     const dateFormatted = document.getElementById("data").value.split("-").reverse().join("/");
 
-    // Agora usamos os templates diretamente, pois o \n já está contido neles
     let text = renderTemplate(conf.templateHeader, { DATE: dateFormatted });
 
+    // Renderiza as linhas de itens
     data.forEach(d => {
         text += renderTemplate(conf.templateLine, d);
     });
-    // SOMA UNIVERSAL (usando sumField)
-    if (conf.templateTotal && conf.sumField) {
-        let sum = data.reduce((acc, d) => {
-            let v = d[conf.sumField] || "0";
-            // Limpa o valor para somar (remove pontos/vírgulas)
-            // Dentro do build(), no bloco do reduce:
-            let valNum = parseFloat(v.toString().replace(",", ".")); // Converte para formato JS (ponto)        
-            return acc + (isNaN(valNum) ? 0 : valNum);
-        }, 0);
 
-        // Identifica a config do campo somado
-        // Identifica a config do campo somado
-        const fieldConfig = conf.fields.find(c => c.name === conf.sumField);
-        let totalFormatted;
+    // --- LÓGICA DE SOMAS ---
+    const sumsData = {};
 
-        if (fieldConfig && fieldConfig.type === 'weight') {
-            // Usa a mesma lógica do formatValue para consistência
-            let localeCode = (fieldConfig.locale === "BR") ? 'pt-BR' : 'en-US';
-            totalFormatted = new Intl.NumberFormat(localeCode, {
-                minimumFractionDigits: fieldConfig.decimals || 3,
-                maximumFractionDigits: fieldConfig.decimals || 3
-            }).format(sum);
-        } else {
-            totalFormatted = Math.round(sum).toString();
-            if (fieldConfig && fieldConfig.pad) {
-                totalFormatted = totalFormatted.padStart(fieldConfig.pad, '0');
-            }
+    // 1. Verifica se existem somas múltiplas configuradas
+    if (conf.sums) {
+        Object.entries(conf.sums).forEach(([varName, fieldName]) => {
+            sumsData[varName] = calcularSoma(data, fieldName, conf.fields);
+        });
+    }
+    // 2. Fallback: Se não houver 'sums', mas houver o antigo 'sumField'
+    else if (conf.sumField) {
+        sumsData["TOTAL"] = calcularSoma(data, conf.sumField, conf.fields);
+    }
+
+    // 3. Aplica o template de total se houver somas calculadas
+    if (Object.keys(sumsData).length > 0 && conf.templateTotal) {
+        let templateTotal = conf.templateTotal;
+
+        // Se o usuário só tem uma soma mas esqueceu a tag {TOTAL}, corrigimos
+        if (conf.sumField && !conf.sums && !templateTotal.includes("{TOTAL}")) {
+            templateTotal += ": {TOTAL}";
         }
 
-        // Verificação de consistência:
-        // Se o usuário esqueceu de colocar {TOTAL}, injetamos automaticamente
-        let templateTotal = conf.templateTotal || "📊 TOTAL: {TOTAL}";
-
-        if (!templateTotal.includes("{TOTAL}")) {
-            templateTotal += ": {TOTAL}"; // Ajuste automático se ele esqueceu
-        }
-
-        text += "\n" + renderTemplate(templateTotal, { TOTAL: totalFormatted });
+        text += "\n" + renderTemplate(templateTotal, sumsData);
     }
 
     preview.innerHTML = text.replace(/\n/g, '<br>');
     return text;
 }
 
+/**
+ * Função auxiliar para isolar a lógica de cálculo e formatação
+ */
+function calcularSoma(data, fieldName, fieldsConfig) {
+    const fieldConfig = fieldsConfig.find(c => c.name === fieldName);
+
+    // Soma os valores
+    const total = data.reduce((acc, d) => {
+        let v = d[fieldName] || "0";
+        // Limpeza robusta: remove pontos de milhar e converte vírgula em ponto
+        let valNum = parseFloat(v.toString().replace(/\./g, "").replace(",", "."));
+        return acc + (isNaN(valNum) ? 0 : valNum);
+    }, 0);
+
+    // Formatação baseada no tipo do campo
+    if (fieldConfig && fieldConfig.type === 'weight') {
+        let localeCode = (fieldConfig.locale === "BR") ? 'pt-BR' : 'en-US';
+        return new Intl.NumberFormat(localeCode, {
+            minimumFractionDigits: fieldConfig.decimals || 3,
+            maximumFractionDigits: fieldConfig.decimals || 3
+        }).format(total);
+    } else {
+        let formatted = Math.round(total).toString();
+        if (fieldConfig && fieldConfig.pad) {
+            formatted = formatted.padStart(fieldConfig.pad, '0');
+        }
+        return formatted;
+    }
+}
 // 7. Funções Utilitárias
 function removeRow() {
     if (container.children.length > 1) {
@@ -379,6 +415,8 @@ function toggleEditor() {
         }
 
 
+        lucide.createIcons(); // Garante que os ícones nos links apareçam
+
         setTimeout(() => editorDiv.scrollIntoView({ behavior: 'smooth' }), 100);
     }
 }
@@ -438,6 +476,7 @@ function setConfigMode(mode) {
         }
     }
 }
+
 function renderSimpleEditor() {
     const container = document.getElementById("simpleEditor");
     const type = select.value;
@@ -508,6 +547,29 @@ function saveAdvancedConfig() {
         throw new Error("Erro no JSON: verifique a sintaxe!");
     }
 }
+
+// Copia a configuração atual para o clipboard
+async function copiarConfigJSON() {
+    const configStr = editorInstance.getValue();
+    await navigator.clipboard.writeText(configStr);
+    alert("Configuração copiada!");
+}
+
+// Lê o clipboard e joga no editor
+async function colarConfigJSON() {
+    try {
+        const texto = await navigator.clipboard.readText();
+        // Validação básica antes de aplicar
+        JSON.parse(stripComments(texto)); 
+        
+        editorInstance.setValue(texto);
+        alert("JSON colado com sucesso! Não esqueça de Salvar.");
+    } catch (e) {
+        alert("O conteúdo do clipboard não é um JSON válido.");
+    }
+}
+
+
 function formatarJSON() {
     try {
         // 1. Pega o conteúdo atual
@@ -524,6 +586,7 @@ function formatarJSON() {
         alert("Não consigo formatar: O JSON está com erro de sintaxe.");
     }
 }
+
 function validateTemplates(config) {
     const errorLog = document.getElementById("errorLog");
     errorLog.innerText = ""; // Limpa erros anteriores
@@ -549,45 +612,95 @@ function validateTemplates(config) {
 }
 
 
-function share() {
-    const texto = build();
-    if (navigator.share && navigator.canShare) navigator.share({ text: texto });
-    else window.open("https://wa.me/?text=" + encodeURIComponent(texto));
 
-    // Salva no histórico ao copiar
-    salvarNoHistorico(texto); // Única chamada, menos chance de erro
-    renderizarHistorico();
-}
 
 
 function salvarNoHistorico(texto) {
-    if (!texto || texto.length < 10) return; // Não salva textos curtos ou vazios
+    if (!texto || texto.length < 10) return;
 
     let historico = JSON.parse(localStorage.getItem('relatorioHistorico')) || [];
-
-    // Evita duplicados (se o último for igual ao atual, não salva)
-    if (historico.length > 0 && historico[0].conteudo === texto) return;
+    const type = select.value;
+    const dataRaw = coletar(); // Pega os valores dos inputs antes de limpar
 
     const novoItem = {
         id: Date.now(),
         data: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-        conteudo: texto
+        conteudo: texto,
+        tipo: type,     // Guardamos qual relatório era
+        raw: dataRaw    // Guardamos os valores dos campos
     };
 
-    // Mantém APENAS os 10 últimos
     historico = [novoItem, ...historico].slice(0, 10);
-
     localStorage.setItem('relatorioHistorico', JSON.stringify(historico));
     renderizarHistorico();
 }
 
 
+function restaurarParaInputs(id) {
+    const historico = JSON.parse(localStorage.getItem('relatorioHistorico')) || [];
+    const item = historico.find(i => Number(i.id) === Number(id));
+
+    if (!item || !item.raw) {
+        alert("Este item não possui dados de origem para restauração.");
+        return;
+    }
+
+    // 1. Troca o select para o tipo correto
+    select.value = item.tipo;
+
+    // 2. Limpa o container e recria as linhas baseadas no histórico
+    container.innerHTML = "";
+    item.raw.forEach(rowData => {
+        addRow();
+        const lastRow = container.lastElementChild;
+        Object.keys(rowData).forEach(fieldName => {
+            const input = lastRow.querySelector(`[data-field="${fieldName}"]`);
+            if (input) input.value = rowData[fieldName];
+        });
+    });
+
+    build();
+    closeSheet();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 // Centralize a chamada para evitar repetição
 async function copiar() {
     const texto = build();
+    if (!texto || texto.trim().length < 10) return; // Segurança contra cópia vazia
+
     await navigator.clipboard.writeText(texto);
-    salvarNoHistorico(texto); // Única chamada, menos chance de erro
-    alert("Copiado e salvo!");
+    salvarNoHistorico(texto);
+
+    alert("Copiado e salvo no histórico!");
+
+    // Limpa o rascunho após a confirmação do usuário
+    limparRascunhoAtual();
+}
+
+async function share() {
+    const texto = build();
+    if (!texto || texto.trim().length < 10) return;
+
+    try {
+        if (navigator.share) {
+            await navigator.share({ text: texto });
+            // Se chegou aqui, o compartilhamento foi bem sucedido
+            salvarNoHistorico(texto);
+            limparRascunhoAtual();
+        } else {
+            // Fallback para WhatsApp
+            window.open("https://wa.me/?text=" + encodeURIComponent(texto));
+            salvarNoHistorico(texto);
+            // No caso de window.open, não temos certeza se ele enviou, 
+            // mas como abriu a aba, geralmente limpamos.
+            if (confirm("Relatório enviado? Deseja limpar os campos?")) {
+                limparRascunhoAtual();
+            }
+        }
+    } catch (err) {
+        console.log("Compartilhamento cancelado ou erro:", err);
+    }
 }
 
 function removerDoHistorico(id) {
@@ -630,8 +743,9 @@ function openSheet(id) {
         <pre style="white-space: pre-wrap; background: #F2F2F7; padding: 15px; border-radius: 14px;">${item.conteudo}</pre>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
             <button onclick="copiarDoHistorico()" style="background: var(--indigo); border: none; padding: 12px; border-radius: 14px; color: white; cursor: pointer;">Copiar</button>
-            <button onclick="salvarArquivo()" style="background: var(--success); border: none; padding: 12px; border-radius: 14px; color: white; cursor: pointer;">Salvar</button>
-        </div>
+            <button  onclick="restaurarParaInputs(${item.id})"style="background: var(--success); border: none; padding: 12px; border-radius: 14px; color: white; cursor: pointer;">Usar</button>
+           
+            </div>
     `;
 
     window.currentReportContent = item.conteudo;
