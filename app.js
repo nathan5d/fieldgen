@@ -140,17 +140,27 @@ function addRow() {
 // Salva o estado atual dos inputs no localStorage
 function salvarRascunho() {
     const type = select.value;
-    const inputs = document.querySelectorAll("#inputsContainer input");
-    let rascunho = {
+    const rows = document.querySelectorAll(".input-row");
+    
+    // Transformamos cada linha em um objeto separado
+    const rascunhoData = Array.from(rows).map(row => {
+        let rowObj = {};
+        const inputs = row.querySelectorAll("input[data-field]");
+        inputs.forEach(i => {
+            rowObj[i.getAttribute("data-field")] = i.value;
+        });
+        return rowObj;
+    });
+
+    const rascunho = {
         type: type,
         date: document.getElementById("data").value,
-        values: Array.from(inputs).map(i => ({
-            name: i.getAttribute("data-field"),
-            value: i.value
-        }))
+        rows: rascunhoData // Agora salvamos o array de linhas
     };
+    
     localStorage.setItem("rascunhoRelatorio", JSON.stringify(rascunho));
 }
+
 
 function carregarRascunho() {
     const salvo = localStorage.getItem("rascunhoRelatorio");
@@ -158,21 +168,26 @@ function carregarRascunho() {
 
     const rascunho = JSON.parse(salvo);
     
-    // Define o tipo e a data
+    // 1. Define o tipo e a data
     select.value = rascunho.type;
     document.getElementById("data").value = rascunho.date;
     
-    // Atualiza o form
-    renderInputs();
-    
-    // Preenche os campos
-    rascunho.values.forEach(item => {
-        const input = document.querySelector(`[data-field="${item.name}"]`);
-        if (input) input.value = item.value;
+    // 2. Limpa e recria a quantidade de linhas necessárias
+    container.innerHTML = "";
+    rascunho.rows.forEach(rowData => {
+        addRow(); // Cria a linha no DOM
+        
+        // Preenche cada campo daquela linha específica
+        const lastRow = container.lastElementChild;
+        Object.keys(rowData).forEach(fieldName => {
+            const input = lastRow.querySelector(`[data-field="${fieldName}"]`);
+            if (input) input.value = rowData[fieldName];
+        });
     });
     
     build();
 }
+
 
 
 // 5. Listeners de Eventos (Máscara e Auto-Row)
