@@ -99,7 +99,7 @@ function init() {
     });
     renderInputs();
     renderizarHistorico();
-
+    carregarRascunho();
     setConfigMode('simple');
 }
 
@@ -137,6 +137,43 @@ function addRow() {
     container.appendChild(row);
 }
 
+// Salva o estado atual dos inputs no localStorage
+function salvarRascunho() {
+    const type = select.value;
+    const inputs = document.querySelectorAll("#inputsContainer input");
+    let rascunho = {
+        type: type,
+        date: document.getElementById("data").value,
+        values: Array.from(inputs).map(i => ({
+            name: i.getAttribute("data-field"),
+            value: i.value
+        }))
+    };
+    localStorage.setItem("rascunhoRelatorio", JSON.stringify(rascunho));
+}
+
+function carregarRascunho() {
+    const salvo = localStorage.getItem("rascunhoRelatorio");
+    if (!salvo) return;
+
+    const rascunho = JSON.parse(salvo);
+    
+    // Define o tipo e a data
+    select.value = rascunho.type;
+    document.getElementById("data").value = rascunho.date;
+    
+    // Atualiza o form
+    renderInputs();
+    
+    // Preenche os campos
+    rascunho.values.forEach(item => {
+        const input = document.querySelector(`[data-field="${item.name}"]`);
+        if (input) input.value = item.value;
+    });
+    
+    build();
+}
+
 
 // 5. Listeners de Eventos (Máscara e Auto-Row)
 container.addEventListener("input", e => {
@@ -156,6 +193,7 @@ container.addEventListener("input", e => {
         }
     }
     build();
+    salvarRascunho();
 });
 
 // No evento BLUR
