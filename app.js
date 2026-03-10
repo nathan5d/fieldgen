@@ -332,15 +332,23 @@ function build() {
 function calcularSoma(data, fieldName, fieldsConfig) {
     const fieldConfig = fieldsConfig.find(c => c.name === fieldName);
 
-    // Soma os valores
     const total = data.reduce((acc, d) => {
-        let v = d[fieldName] || "0";
-        // Limpeza robusta: remove pontos de milhar e converte vírgula em ponto
-        let valNum = parseFloat(v.toString().replace(/\./g, "").replace(",", "."));
+        let v = d[fieldName];
+        if (v === undefined || v === null || v === "") return acc;
+
+        let valNum;
+        if (fieldConfig && fieldConfig.type === 'weight') {
+            // Limpeza para pesos: remove separador de milhar e normaliza decimal
+            valNum = parseFloat(v.toString().replace(/\./g, "").replace(",", "."));
+        } else {
+            // Limpeza para números inteiros: remove qualquer coisa que não seja dígito
+            valNum = parseInt(v.toString().replace(/\D/g, ""), 10);
+        }
+
         return acc + (isNaN(valNum) ? 0 : valNum);
     }, 0);
 
-    // Formatação baseada no tipo do campo
+    // Formatação da saída
     if (fieldConfig && fieldConfig.type === 'weight') {
         let localeCode = (fieldConfig.locale === "BR") ? 'pt-BR' : 'en-US';
         return new Intl.NumberFormat(localeCode, {
@@ -348,7 +356,8 @@ function calcularSoma(data, fieldName, fieldsConfig) {
             maximumFractionDigits: fieldConfig.decimals || 3
         }).format(total);
     } else {
-        let formatted = Math.round(total).toString();
+        // Para números comuns, apenas garante o pad se houver
+        let formatted = total.toString();
         if (fieldConfig && fieldConfig.pad) {
             formatted = formatted.padStart(fieldConfig.pad, '0');
         }
@@ -482,38 +491,53 @@ function renderSimpleEditor() {
     const type = select.value;
     const conf = currentConfig[type];
 
+    // Lista de variáveis disponíveis para a LINHA
     const varList = conf.fields.map(f => `{${f.name}}`).join(", ");
 
+    // Lista de variáveis disponíveis para o TOTAL (baseado no objeto sums)
+    const totalVars = conf.sums ? Object.keys(conf.sums).map(s => `{${s}}`).join(", ") : "{TOTAL}";
+
     container.innerHTML = `
-        <label>Nome do relatório</label>
-        <input id="conf_name" value="${conf.name}">
-
-        <label>Template Header</label>
-        <input id="conf_header" value="${conf.templateHeader}">
-
-        <label>Template Linha</label>
-        <div style="display:flex; gap: 5px; margin-bottom: 2px;">
-            <input id="conf_line" value="${conf.templateLine.replace(/\\n/g, '\\n')}">
+        <div style="margin-bottom: 15px;">
+            <label>Nome do Relatório</label>
+            <input id="conf_name" value="${conf.name}" placeholder="Ex: Produção Diária">
         </div>
-        <small style="color: #666; display: block; margin-bottom: 15px;">Variáveis: ${varList}</small>
-        
-        <label>Template Total</label>
-        <input id="conf_total" value="${conf.templateTotal || '📊 TOTAL: {TOTAL}'}">
-        <small style="color: #666; display: block; margin-bottom: 15px;">
-            Use a variável <b>{TOTAL}</b>. Ex: "Total: {TOTAL} un."
-        </small>
 
-        <label>Campo de soma</label>
-        <select id="conf_sumfield" style="margin-top: 5px;">
-            ${conf.fields.map(f => `
-                <option value="${f.name}" ${f.name === conf.sumField ? 'selected' : ''}>
-                    ${f.name}
-                </option>
-            `).join("")}
-        </select>
+        <div style="margin-bottom: 15px;">
+            <label>Cabeçalho (Início)</label>
+            <input id="conf_header" value="${conf.templateHeader}">
+            <small style="color: var(--gray); font-size: 11px;">Dica: Use {DATE} para a data.</small>
+        </div>
+
+        <div style="margin-bottom: 15px; border-left: 3px solid var(--primary); padding-left: 10px;">
+            <label>Modelo da Linha (Corpo)</label>
+            <input id="conf_line" value="${conf.templateLine ? conf.templateLine.replace(/"/g, '&quot;') : ''}">
+            <small style="color: var(--gray); display: block; margin-top: 4px;">
+                <b>Campos:</b> ${varList}
+            </small>
+        </div>
+        
+       <div style="margin-bottom: 20px; background: #fdfdfd; padding: 16px; border-radius: 16px; border: 1px solid #E5E5EA;">
+    <label style="margin-bottom: 8px; display: block; color: var(--primary);">Cálculo Principal</label>
+    <select id="conf_sumfield" style="margin-top: 0; background: #fff; border: 1px solid #E5E5EA;">
+        ${conf.fields.length > 0 ? conf.fields.map(f => `
+            <option value="${f.name}" ${f.name === conf.sumField ? 'selected' : ''}>
+                Somar coluna: ${f.label || f.name}
+            </option>
+        `).join("") : '<option>Nenhum campo disponível</option>'}
+    </select>
+    
+    <label style="margin-top: 15px; display: block; color: var(--primary);">Template do Rodapé</label>
+    <input id="conf_total" 
+           value="${conf.templateTotal || '📊 TOTAL: {TOTAL}'}" 
+           placeholder="Ex: 📦 Lotes: {TOTAL_LOTES} | ⚖️ Peso: {TOTAL_PESO}">
+           
+    <small style="color: var(--gray); display: block; margin-top: 8px; line-height: 1.4;">
+        <b>Tags automáticas:</b> ${totalVars}
+    </small>
+</div>
     `;
 }
-
 
 function saveSimpleConfig() {
     const type = select.value;
@@ -524,11 +548,28 @@ function saveSimpleConfig() {
     conf.templateLine = document.getElementById("conf_line").value;
     conf.templateTotal = document.getElementById("conf_total").value;
 
-    // Agora o campo de soma vem direto do select
-    conf.sumField = document.getElementById("conf_sumfield").value;
+    const novoCampoDeSoma = document.getElementById("conf_sumfield").value;
+    conf.sumField = novoCampoDeSoma;
+
+    // --- NOVA LÓGICA DE MAPEAMENTO ---
+    // Criamos um objeto sums dinâmico baseado nos campos existentes
+    conf.sums = {};
+
+    // Define o {TOTAL} padrão baseado no select do Modo Simples
+    conf.sums["TOTAL"] = novoCampoDeSoma;
+
+    // Mapeia automaticamente outros campos para evitar que as tags fiquem vazias
+    conf.fields.forEach(f => {
+        if (f.type === 'weight') {
+            conf.sums["TOTAL_PESO"] = f.name;
+        }
+        if (f.name === 'LOTS' || f.name === 'QTD') {
+            conf.sums["TOTAL_LOTES"] = f.name;
+        }
+    });
 
     localStorage.setItem('relatorioConfig', JSON.stringify(currentConfig));
-    alert("Configuração salva!");
+    alert("Configuração salva! Agora as tags de peso e lotes estão ativas.");
 }
 
 function saveAdvancedConfig() {
@@ -560,8 +601,8 @@ async function colarConfigJSON() {
     try {
         const texto = await navigator.clipboard.readText();
         // Validação básica antes de aplicar
-        JSON.parse(stripComments(texto)); 
-        
+        JSON.parse(stripComments(texto));
+
         editorInstance.setValue(texto);
         alert("JSON colado com sucesso! Não esqueça de Salvar.");
     } catch (e) {
