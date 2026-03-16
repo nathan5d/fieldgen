@@ -1,4 +1,5 @@
-const CACHE_NAME = 'fieldgen-v4';
+const VERSION = 'v1.0.6'; // <--- Mude aqui e o PWA detecta a mudança
+const CACHE_NAME = `fieldgen-${VERSION}`;
 const urlsToCache = [
     "/fieldgen/",
     "/fieldgen/index.html",
@@ -29,8 +30,13 @@ self.addEventListener("activate", (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
-                cacheNames.filter(name => name.startsWith("fieldgen-") && name !== CACHE_NAME)
-                          .map(name => caches.delete(name))
+                cacheNames.map((cacheName) => {
+                    // Se o nome do cache mudou, tchau cache antigo!
+                    if (cacheName !== CACHE_NAME) {
+                        console.log("Limpando cache antigo:", cacheName);
+                        return caches.delete(cacheName);
+                    }
+                })
             );
         })
     );
@@ -52,4 +58,12 @@ self.addEventListener("fetch", (event) => {
             });
         })
     );
+});
+
+
+// Responder ao pedido de versão do HTML
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'GET_VERSION') {
+        event.ports[0].postMessage({ version: VERSION });
+    }
 });
