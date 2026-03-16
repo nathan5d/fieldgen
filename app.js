@@ -28,7 +28,7 @@ const defaultConfig = {
             }
         ],
         "templateHeader": "📌 Report - {DATE} \\n\\n",
-        "templateLine": "🔹 Cod.: {COD} - Lotes: {LOTS} Peso Bruto: {WEIGHT} \\n",
+        "templateLine": "🔹 Cod.: {COD} - Lotes: {LOTS} \\nPeso Bruto: {WEIGHT} \\n\\n",
         "templateTotal": "📊 TOTAL: {TOTAL} ",
         "sumField": "LOTS",
         "sums": {
@@ -319,7 +319,7 @@ function build() {
             templateTotal += ": {TOTAL}";
         }
 
-        text += "\n" + renderTemplate(templateTotal, sumsData);
+        text += renderTemplate(templateTotal, sumsData);
     }
 
     preview.innerHTML = text.replace(/\n/g, '<br>');
@@ -533,7 +533,7 @@ function renderSimpleEditor() {
            placeholder="Ex: 📦 Lotes: {TOTAL_LOTES} | ⚖️ Peso: {TOTAL_PESO}">
            
     <small style="color: var(--gray); display: block; margin-top: 8px; line-height: 1.4;">
-        <b>Tags automáticas:</b> ${totalVars}
+        <b>Tags Disponíveis:</b> ${totalVars}
     </small>
 </div>
     `;
@@ -661,14 +661,21 @@ function salvarNoHistorico(texto) {
 
     let historico = JSON.parse(localStorage.getItem('relatorioHistorico')) || [];
     const type = select.value;
-    const dataRaw = coletar(); // Pega os valores dos inputs antes de limpar
+    const dataRaw = coletar(); 
+    
+    // Captura a data selecionada no input e formata para dd/mm
+    const inputDate = document.getElementById("data").value; // Formato YYYY-MM-DD
+    const dateObj = new Date(inputDate + 'T00:00:00'); 
+    const dataFormatada = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
     const novoItem = {
         id: Date.now(),
-        data: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        // Agora salvamos a data do relatório + hora
+        data: `${dataFormatada} às ${hora}`, 
         conteudo: texto,
-        tipo: type,     // Guardamos qual relatório era
-        raw: dataRaw    // Guardamos os valores dos campos
+        tipo: type,
+        raw: dataRaw
     };
 
     historico = [novoItem, ...historico].slice(0, 10);
