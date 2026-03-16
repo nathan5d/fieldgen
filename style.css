@@ -17,6 +17,20 @@
     --button-text: #FFFFFF;
 }
 
+
+html, body {
+    /* Permite o comportamento de "overscroll" elástico do iOS/Android */
+    overscroll-behavior-y: contain; 
+    /* Melhora a rolagem */
+    -webkit-overflow-scrolling: touch;
+}
+
+body {
+    /* Evita que o usuário selecione texto por acidente ao arrastar */
+    user-select: none;
+    -webkit-user-select: none;
+}
+
 /* Base para os botões de modo */
 .btn-mode {
     flex: 1;
@@ -475,20 +489,82 @@ i {
 
 
 
-#update-toast {
+/* Feedback tátil visual */
+button:active {
+    transform: scale(0.92) !important;
+    transition: transform 0.1s ease;
+}
+
+/* Card com sombra mais sutil e profunda */
+.card {
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.02);
+}
+
+/* Transição suave para inputs */
+select, input {
+    transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease;
+}
+
+
+/* Spinner de Arrastar (Apple Style) */
+.pull-indicator {
     position: fixed;
-    bottom: 20px;
+    top: 10px;
     left: 50%;
     transform: translateX(-50%);
-    background: #32D74B;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.2s;
+    z-index: 999;
+}
+
+.ios-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid rgba(0,0,0,0.1);
+    border-top: 2px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Novo Toast Sutil (Topo) */
+.update-toast {
+    position: fixed;
+    top: -100px; /* Escondido acima */
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(30, 30, 32, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 10px 20px;
+    border-radius: 40px;
     color: white;
-    padding: 12px 20px;
-    border-radius: 50px;
-    display: none;
+    display: flex;
     align-items: center;
-    gap: 10px;
-    z-index: 9999;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    font-weight: bold;
+    gap: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    z-index: 10001;
+    transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
     cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.update-toast.show {
+    top: 25px; /* Desliza para baixo */
+}
+
+.update-toast i {
+    width: 18px;
+    color: var(--success);
+    animation: spin 3s linear infinite; /* Ícone girando devagar */
+}
+
+.update-toast span {
+    font-size: 14px;
+    font-weight: 500;
 }
