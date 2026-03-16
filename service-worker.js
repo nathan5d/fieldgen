@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fieldgen-v3'; // Incrementei para v3
+const CACHE_NAME = 'fieldgen-v4';
 const urlsToCache = [
     "/fieldgen/",
     "/fieldgen/index.html",
