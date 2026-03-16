@@ -1,4 +1,4 @@
-const VERSION = 'v1.0.6'; // <--- Mude aqui e o PWA detecta a mudança
+const VERSION = 'v1.1.0'; // <--- Mude aqui e o PWA detecta a mudança
 const CACHE_NAME = `fieldgen-${VERSION}`;
 const urlsToCache = [
     "/fieldgen/",

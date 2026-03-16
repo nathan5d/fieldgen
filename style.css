@@ -558,13 +558,20 @@ select, input {
     top: 25px; /* Desliza para baixo */
 }
 
-.update-toast i {
-    width: 18px;
-    color: var(--success);
-    animation: spin 3s linear infinite; /* Ícone girando devagar */
-}
 
 .update-toast span {
     font-size: 14px;
     font-weight: 500;
+}
+
+
+.toast-icon {
+    display: flex;
+    align-items: center;
+    animation: rotate 2.5s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
