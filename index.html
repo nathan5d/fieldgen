@@ -8,7 +8,7 @@
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
 
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="FieldGen">
 
@@ -160,13 +160,36 @@
         <div id="sheetContent" style="padding: 0;"></div>
     </dialog>
 
-    <script>
-        if ('serviceWorker' in navigator) {
-            // Sem a barra inicial para ser relativo ao diretório do projeto
-            navigator.serviceWorker.register('service-worker.js')
-                .then(() => console.log('PWA Service Worker registrado!'));
-        }
-    </script>
+  <div id="update-toast" onclick="window.location.reload()">
+    <i data-lucide="refresh-cw"></i> Nova versão disponível! Toque para atualizar.
+</div>
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('service-worker.js').then(reg => {
+                // Verifica se há um novo SW esperando para ser ativado
+                reg.addEventListener('updatefound', () => {
+                    const newWorker = reg.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            document.getElementById('update-toast').style.display = 'flex';
+                        }
+                    });
+                });
+            });
+        });
+
+        // Recarrega a página quando o novo SW assume o controle
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (!refreshing) {
+                window.location.reload();
+                refreshing = true;
+            }
+        });
+    }
+</script>
     <script src="app.js"></script>
 
 </body>
