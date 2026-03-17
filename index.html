@@ -213,7 +213,7 @@
                 messageChannel.port1.onmessage = (event) => {
                     if (event.data && event.data.version) {
                         const date = new Date().toLocaleDateString('pt-BR');
-                        document.getElementById('app-version').innerText = `FieldGen ${event.data.version} • ${date}`;
+                        document.getElementById('app-version').innerText = `FieldGen ${event.data.version}`;
                     }
                 };
 
