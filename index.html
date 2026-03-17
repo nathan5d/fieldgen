@@ -137,10 +137,10 @@
     </div>
 
     <script>
-
-        // Logica para Pull-to-Refresh visual (simulação sutil)
+        // 1. Lógica para Pull-to-Refresh visual e funcional
         let touchStart = 0;
         const indicator = document.getElementById('pull-indicator');
+        let swRegistration = null; // Guardará o registro do SW para uso global
 
         window.addEventListener('touchstart', (e) => {
             touchStart = e.touches[0].pageY;
@@ -155,17 +155,29 @@
         }, { passive: true });
 
         window.addEventListener('touchend', () => {
+            const touchDiff = event.changedTouches[0].pageY - touchStart;
+
+            // Se puxou o suficiente, tenta atualizar
+            if (window.scrollY === 0 && touchDiff > 70 && swRegistration) {
+                console.log("Buscando atualizações manualmente...");
+                swRegistration.update();
+            }
+
             indicator.style.opacity = '0';
             indicator.style.transform = `translateY(0)`;
         });
 
-        // Service Worker
+        // 2. Registro e Gerenciamento do Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('service-worker.js').then(reg => {
+                    swRegistration = reg; // Salva o registro para o Pull-to-Refresh usar
+
+                    // Detecta quando uma nova versão é encontrada
                     reg.addEventListener('updatefound', () => {
                         const newWorker = reg.installing;
                         newWorker.addEventListener('statechange', () => {
+                            // Só mostra o toast se houver um SW antigo controlando a página
                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                                 document.getElementById('update-toast').classList.add('show');
                             }
@@ -174,6 +186,7 @@
                 });
             });
 
+            // Recarrega a página automaticamente quando o novo SW assume o controle
             let refreshing = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (!refreshing) {
@@ -183,14 +196,13 @@
             });
         }
 
-        // No seu index.html dentro da tag <script>
+        // 3. Atualização da Versão no Rodapé (Fonte Única: Service Worker)
         function updateVersionUI() {
             if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
                 const messageChannel = new MessageChannel();
 
                 messageChannel.port1.onmessage = (event) => {
                     if (event.data && event.data.version) {
-                        // Aqui usamos a data do dia em que o usuário está acessando
                         const date = new Date().toLocaleDateString('pt-BR');
                         document.getElementById('app-version').innerText = `FieldGen ${event.data.version} • ${date}`;
                     }
@@ -200,7 +212,7 @@
             }
         }
 
-        // Chamar ao carregar e também quando o Service Worker for trocado
+        // Executa ao carregar e quando o controle mudar
         window.addEventListener('load', updateVersionUI);
         navigator.serviceWorker.addEventListener('controllerchange', updateVersionUI);
 
