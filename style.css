@@ -25,12 +25,13 @@ html, body {
     -webkit-overflow-scrolling: touch;
 }
 
-
 body {
-     /* Evita que o usuário selecione texto por acidente ao arrastar */
+    /* Evita que o usuário selecione texto por acidente ao arrastar */
     user-select: none;
     -webkit-user-select: none;
+}
 
+body {
     /* Impede o pull-to-refresh nativo do navegador */
     overscroll-behavior-y: contain; 
     /* Evita que a tela "pule" no iOS ao chegar no topo */
@@ -597,7 +598,7 @@ select, input {
 }
 
 /* Animação de rotação contínua para o ícone do toast */
-.update-toast.show .toast-icon svg {
+.update-toast.show .toast-icon i {
     animation: rotateIcon 2s linear infinite;
 }
 
