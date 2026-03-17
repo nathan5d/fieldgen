@@ -18,27 +18,27 @@
 }
 
 
+html, body {
+    /* Permite o comportamento de "overscroll" elástico do iOS/Android */
+    overscroll-behavior-y: contain; 
+    /* Melhora a rolagem */
+    -webkit-overflow-scrolling: touch;
+}
 
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
-    background: var(--bg);
-    padding: 20px 15px;
-    margin: 0;
-    color: #000;
-    
-    /* Bloqueia o Pull-to-Refresh nativo */
-    overscroll-behavior-y: contain; 
-    
-    /* Garante que o scroll funcione sem o bounce do sistema */
-    height: 100vh;
-    width: 100vw;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    
-    /* Evita seleção acidental ao arrastar */
+     /* Evita que o usuário selecione texto por acidente ao arrastar */
     user-select: none;
     -webkit-user-select: none;
+
+    /* Impede o pull-to-refresh nativo do navegador */
+    overscroll-behavior-y: contain; 
+    /* Evita que a tela "pule" no iOS ao chegar no topo */
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 /* Base para os botões de modo */
 .btn-mode {
