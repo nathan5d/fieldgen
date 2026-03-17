@@ -6,41 +6,38 @@
     --gray: #8E8E93;
     --bg: #F2F2F7;
     --card-bg: #FFFFFF;
-    --primary: #007AFF;
-    --success: #34C759;
-    --danger: #FF3B30;
-    --indigo: #5856D6;
-    --gray: #8E8E93;
-    --bg: #F2F2F7;
-    --card-bg: #FFFFFF;
-    /* Adicione estas para garantir consistência */
     --button-text: #FFFFFF;
 }
 
-
-html, body {
-    /* Permite o comportamento de "overscroll" elástico do iOS/Android */
-    overscroll-behavior-y: contain; 
-    /* Melhora a rolagem */
-    -webkit-overflow-scrolling: touch;
+/* 1. CONFIGURAÇÃO DE TELA (O segredo para iOS) */
+html {
+    height: 100%;
+    overscroll-behavior-y: contain; /* Bloqueia o refresh nativo mas permite o seu */
 }
 
 body {
-    /* Evita que o usuário selecione texto por acidente ao arrastar */
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+    background: var(--bg);
+    color: #000;
+    margin: 0;
+    padding: 20px 15px;
+    padding-top: calc(20px + env(safe-area-inset-top)); /* Respeita o Notch do iPhone */
+    padding-bottom: env(safe-area-inset-bottom);
+    
+    min-height: 100%; 
+    width: 100%;
+    box-sizing: border-box;
+    
+    /* Scroll liberado e suave */
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    
+    /* Interface limpa */
     user-select: none;
     -webkit-user-select: none;
 }
 
-body {
-    /* Impede o pull-to-refresh nativo do navegador */
-    overscroll-behavior-y: contain; 
-    /* Evita que a tela "pule" no iOS ao chegar no topo */
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-}
 /* Base para os botões de modo */
 .btn-mode {
     flex: 1;
@@ -531,6 +528,17 @@ select, input {
     pointer-events: none;
     transition: opacity 0.3s ease;
     z-index: 10;
+}
+
+/* Garante que o container de puxar não quebre o layout */
+.pull-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    z-index: 9999; /* Garante que fique acima de tudo */
+    pointer-events: none; /* Deixa o toque passar para o conteúdo abaixo */
 }
 
 .ios-spinner {
