@@ -18,19 +18,28 @@
 }
 
 
-html, body {
-    /* Permite o comportamento de "overscroll" elástico do iOS/Android */
-    overscroll-behavior-y: contain; 
-    /* Melhora a rolagem */
-    -webkit-overflow-scrolling: touch;
-}
+
 
 body {
-    /* Evita que o usuário selecione texto por acidente ao arrastar */
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+    background: var(--bg);
+    padding: 20px 15px;
+    margin: 0;
+    color: #000;
+    
+    /* Bloqueia o Pull-to-Refresh nativo */
+    overscroll-behavior-y: contain; 
+    
+    /* Garante que o scroll funcione sem o bounce do sistema */
+    height: 100vh;
+    width: 100vw;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    
+    /* Evita seleção acidental ao arrastar */
     user-select: none;
     -webkit-user-select: none;
 }
-
 /* Base para os botões de modo */
 .btn-mode {
     flex: 1;
@@ -588,7 +597,7 @@ select, input {
 }
 
 /* Animação de rotação contínua para o ícone do toast */
-.update-toast.show .toast-icon i {
+.update-toast.show .toast-icon svg {
     animation: rotateIcon 2s linear infinite;
 }
 

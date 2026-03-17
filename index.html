@@ -154,17 +154,26 @@
             }
         }, { passive: true });
 
-        window.addEventListener('touchend', () => {
-            const touchDiff = event.changedTouches[0].pageY - touchStart;
+        window.addEventListener('touchend', (e) => {
+            // Calculamos a diferença final do toque
+            const touchDiff = e.changedTouches[0].pageY - touchStart;
 
-            // Se puxou o suficiente, tenta atualizar
-            if (window.scrollY === 0 && touchDiff > 70 && swRegistration) {
-                console.log("Buscando atualizações manualmente...");
-                swRegistration.update();
+            // Se puxou mais de 70px e estamos no topo da página
+            if (window.scrollY <= 0 && touchDiff > 70) {
+                if (swRegistration) {
+                    console.log("🔄 Buscando atualizações...");
+                    swRegistration.update();
+
+                    // Feedback visual: faz o spinner girar mais rápido por 1s
+                    indicator.querySelector('.ios-spinner').style.borderTopColor = '#007AFF'; // Cor de "processando"
+                }
             }
 
-            indicator.style.opacity = '0';
-            indicator.style.transform = `translateY(0)`;
+            // Esconde o indicador com um leve atraso para o usuário ver que terminou
+            setTimeout(() => {
+                indicator.style.opacity = '0';
+                indicator.style.transform = `translateY(0)`;
+            }, 500);
         });
 
         // 2. Registro e Gerenciamento do Service Worker
